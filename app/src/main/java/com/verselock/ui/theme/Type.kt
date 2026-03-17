@@ -27,3 +27,9 @@ val DmSansFamily = FontFamily(
     Font(GoogleFont("DM Sans"), provider, FontWeight.SemiBold),
     Font(GoogleFont("DM Sans"), provider, FontWeight.Bold),
 )
+
+val PlayfairDisplayFamily = FontFamily(
+    Font(GoogleFont("Playfair Display"), provider, FontWeight.Normal),
+    Font(GoogleFont("Playfair Display"), provider, FontWeight.Medium),
+    Font(GoogleFont("Playfair Display"), provider, FontWeight.Bold),
+)

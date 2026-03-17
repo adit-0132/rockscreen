@@ -32,9 +32,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.util.lerp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.imageLoader
@@ -46,7 +48,11 @@ import com.verselock.data.model.LyricsResult
 import com.verselock.data.model.TrackInfo
 import com.verselock.service.MediaListenerService
 import com.verselock.ui.theme.DmSansFamily
+import com.verselock.ui.theme.PlayfairDisplayFamily
 import com.verselock.ui.theme.SpaceGroteskFamily
+import com.verselock.util.LyricFont
+import com.verselock.util.VisualPrefs
+import com.verselock.util.visualPrefsFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -75,6 +81,8 @@ class LockScreenActivity : ComponentActivity() {
             val lyricIndex by viewModel.currentLyricIndex.collectAsStateWithLifecycle()
             val lyricsResult by viewModel.lyricsResult.collectAsStateWithLifecycle()
             val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
+            val visualPrefs by applicationContext.visualPrefsFlow()
+                .collectAsStateWithLifecycle(initialValue = VisualPrefs())
 
             // Finish activity if playback stops
             LaunchedEffect(isPlaying) {
@@ -89,7 +97,8 @@ class LockScreenActivity : ComponentActivity() {
                 track = track,
                 lyricsResult = lyricsResult,
                 activeIndex = lyricIndex,
-                isPlaying = isPlaying
+                isPlaying = isPlaying,
+                visualPrefs = visualPrefs
             )
         }
     }
@@ -100,7 +109,8 @@ fun LockScreenContent(
     track: TrackInfo?,
     lyricsResult: LyricsResult,
     activeIndex: Int,
-    isPlaying: Boolean
+    isPlaying: Boolean,
+    visualPrefs: VisualPrefs
 ) {
     // Clock
     var time by remember { mutableStateOf(Calendar.getInstance()) }
@@ -143,7 +153,7 @@ fun LockScreenContent(
             .background(Color(0xFF0A0F14))
     ) {
         // Background blobs
-        BackgroundBlobs(dominantColor, vibrantColor, mutedColor)
+        BackgroundBlobs(dominantColor, vibrantColor, mutedColor, visualPrefs.blobIntensity)
 
         Column(
             modifier = Modifier
@@ -153,10 +163,11 @@ fun LockScreenContent(
         ) {
             Spacer(Modifier.height(70.dp)) // ~1.5cm clearance for hole-punch cameras
 
-            // Clock
-            ClockBlock(time)
-
-            Spacer(Modifier.height(12.dp))
+            // Clock (conditionally shown)
+            if (visualPrefs.showClock) {
+                ClockBlock(time)
+                Spacer(Modifier.height(12.dp))
+            }
 
             // Track pill
             if (track != null) {
@@ -178,7 +189,8 @@ fun LockScreenContent(
                         is LyricsResult.Found -> {
                             LyricsScroller(
                                 lines = state.lines.map { it.text },
-                                activeIndex = activeIndex
+                                activeIndex = activeIndex,
+                                visualPrefs = visualPrefs
                             )
                         }
                         LyricsResult.NotFound -> {
@@ -210,16 +222,19 @@ fun LockScreenContent(
 }
 
 @Composable
-fun BackgroundBlobs(dominantColor: Color, vibrantColor: Color, mutedColor: Color) {
+fun BackgroundBlobs(dominantColor: Color, vibrantColor: Color, mutedColor: Color, blobIntensity: Float) {
     val animDominant by animateColorAsState(targetValue = dominantColor, animationSpec = tween(durationMillis = 2000), label = "animDominant")
     val animVibrant by animateColorAsState(targetValue = vibrantColor, animationSpec = tween(durationMillis = 2000), label = "animVibrant")
     val animMuted by animateColorAsState(targetValue = mutedColor, animationSpec = tween(durationMillis = 2000), label = "animMuted")
+
+    // Normalize so that default blobIntensity=0.5f produces the original alphas
+    val scale = blobIntensity / 0.5f
 
     Canvas(modifier = Modifier.fillMaxSize()) {
         // Top-left blob -> Muted
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(animMuted.copy(alpha = 0.7f), Color.Transparent),
+                colors = listOf(animMuted.copy(alpha = (0.7f * scale).coerceAtMost(1f)), Color.Transparent),
                 center = Offset(-60f, -60f),
                 radius = 500f
             ),
@@ -229,7 +244,7 @@ fun BackgroundBlobs(dominantColor: Color, vibrantColor: Color, mutedColor: Color
         // Top-right blob -> Vibrant
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(animVibrant.copy(alpha = 0.6f), Color.Transparent),
+                colors = listOf(animVibrant.copy(alpha = (0.6f * scale).coerceAtMost(1f)), Color.Transparent),
                 center = Offset(size.width + 80f, size.height * 0.25f),
                 radius = 400f
             ),
@@ -239,7 +254,7 @@ fun BackgroundBlobs(dominantColor: Color, vibrantColor: Color, mutedColor: Color
         // Bottom-left blob -> Dominant
         drawCircle(
             brush = Brush.radialGradient(
-                colors = listOf(animDominant.copy(alpha = 0.5f), Color.Transparent),
+                colors = listOf(animDominant.copy(alpha = (0.5f * scale).coerceAtMost(1f)), Color.Transparent),
                 center = Offset(80f, size.height - 150f),
                 radius = 450f
             ),
@@ -414,9 +429,25 @@ fun TrackPill(track: TrackInfo, isPlaying: Boolean) {
 }
 
 @Composable
-fun LyricsScroller(lines: List<String>, activeIndex: Int) {
+fun LyricsScroller(lines: List<String>, activeIndex: Int, visualPrefs: VisualPrefs) {
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Resolve font family from user preference
+    val fontFamily: FontFamily = when (visualPrefs.lyricFont) {
+        LyricFont.DM_SANS -> DmSansFamily
+        LyricFont.SPACE_GROTESK -> SpaceGroteskFamily
+        LyricFont.PLAYFAIR_DISPLAY -> PlayfairDisplayFamily
+    }
+
+    // Focus intensity: derive opacity cascade via lerp
+    // At focusIntensity=0.0 (low): nearest=0.55, mid=0.42, far=0.32
+    // At focusIntensity=1.0 (high): nearest=0.22, mid=0.14, far=0.08
+    // At focusIntensity=0.5 (default): nearest≈0.385, mid≈0.28, far≈0.20 (matches original hardcoded values)
+    val fi = visualPrefs.focusIntensity
+    val nearestOpacity = lerp(0.55f, 0.22f, fi)
+    val midOpacity = lerp(0.42f, 0.14f, fi)
+    val farOpacity = lerp(0.32f, 0.08f, fi)
 
     // Auto-scroll to active line
     LaunchedEffect(activeIndex) {
@@ -440,12 +471,12 @@ fun LyricsScroller(lines: List<String>, activeIndex: Int) {
                 val diff = index - activeIndex
                 val isActive = diff == 0
 
-                // Animated opacity
+                // Animated opacity using focus intensity-derived values
                 val targetOpacity = when {
                     isActive -> 1.0f
-                    diff == -1 || diff == 1 -> if (diff < 0) 0.38f else 0.45f
-                    diff == -2 || diff == 2 -> 0.28f
-                    else -> 0.18f
+                    diff == -1 || diff == 1 -> if (diff < 0) nearestOpacity else (nearestOpacity + 0.07f).coerceAtMost(1f)
+                    diff == -2 || diff == 2 -> midOpacity
+                    else -> farOpacity
                 }
                 val animatedOpacity by animateFloatAsState(
                     targetValue = targetOpacity,
@@ -454,7 +485,7 @@ fun LyricsScroller(lines: List<String>, activeIndex: Int) {
                 )
 
                 val targetSize = when {
-                    isActive -> 26f
+                    isActive -> visualPrefs.activeLyricSize
                     kotlin.math.abs(diff) == 1 -> 23f
                     else -> 22f
                 }
@@ -486,7 +517,7 @@ fun LyricsScroller(lines: List<String>, activeIndex: Int) {
                 Text(
                     text = line,
                     fontSize = animatedSize.sp,
-                    fontFamily = DmSansFamily,
+                    fontFamily = fontFamily,
                     fontWeight = when {
                         isActive -> FontWeight.Bold
                         index < activeIndex -> FontWeight.Normal

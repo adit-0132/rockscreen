@@ -7,7 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,9 +22,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.verselock.ui.theme.DmSansFamily
 import com.verselock.ui.theme.SpaceGroteskFamily
-import com.verselock.util.dataStore
+import com.verselock.util.LyricFont
 import com.verselock.util.PrefKeys
+import com.verselock.util.VisualPrefs
+import com.verselock.util.dataStore
+import com.verselock.util.saveVisualPrefs
 import com.verselock.util.setLockScreenEnabled
+import com.verselock.util.visualPrefsFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -35,6 +41,7 @@ class SettingsActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen() {
     val context = LocalContext.current
@@ -43,6 +50,15 @@ fun SettingsScreen() {
     val lockScreenEnabled by context.dataStore.data
         .map { it[PrefKeys.LOCK_SCREEN_ENABLED] ?: true }
         .collectAsStateWithLifecycle(initialValue = true)
+
+    var visualPrefs by remember { mutableStateOf(VisualPrefs()) }
+    val savedPrefs by context.visualPrefsFlow()
+        .collectAsStateWithLifecycle(initialValue = VisualPrefs())
+
+    // Sync DataStore values into local state
+    LaunchedEffect(savedPrefs) {
+        visualPrefs = savedPrefs
+    }
 
     val notificationAccessGranted = remember {
         Settings.Secure.getString(
@@ -56,6 +72,7 @@ fun SettingsScreen() {
             .fillMaxSize()
             .background(Color(0xFF080810))
             .systemBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -124,7 +141,7 @@ fun SettingsScreen() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         "Lock Screen Lyrics",
                         fontSize = 14.sp,
@@ -153,5 +170,216 @@ fun SettingsScreen() {
                 )
             }
         }
+
+        // ─── Appearance Section ─────────────────────────────────
+        Spacer(Modifier.height(8.dp))
+        Text(
+            "Appearance",
+            fontSize = 20.sp,
+            fontFamily = SpaceGroteskFamily,
+            fontWeight = FontWeight.SemiBold,
+            color = Color.White.copy(alpha = 0.85f)
+        )
+
+        // Background Intensity
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF0e0e18),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Background Intensity",
+                    fontSize = 14.sp,
+                    fontFamily = DmSansFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                Text(
+                    "How strongly album colors bleed into the background",
+                    fontSize = 12.sp,
+                    fontFamily = DmSansFamily,
+                    color = Color.White.copy(alpha = 0.45f),
+                    lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Slider(
+                    value = visualPrefs.blobIntensity,
+                    onValueChange = { newVal ->
+                        visualPrefs = visualPrefs.copy(blobIntensity = newVal)
+                        scope.launch { context.saveVisualPrefs(visualPrefs) }
+                    },
+                    valueRange = 0.1f..0.8f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFF7C3AED),
+                        activeTrackColor = Color(0xFF7C3AED)
+                    )
+                )
+            }
+        }
+
+        // Lyric Size
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF0e0e18),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Lyric Size",
+                    fontSize = 14.sp,
+                    fontFamily = DmSansFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                Text(
+                    "Size of the current lyric line",
+                    fontSize = 12.sp,
+                    fontFamily = DmSansFamily,
+                    color = Color.White.copy(alpha = 0.45f),
+                    lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Slider(
+                    value = visualPrefs.activeLyricSize,
+                    onValueChange = { newVal ->
+                        visualPrefs = visualPrefs.copy(activeLyricSize = newVal)
+                        scope.launch { context.saveVisualPrefs(visualPrefs) }
+                    },
+                    valueRange = 20f..32f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFF7C3AED),
+                        activeTrackColor = Color(0xFF7C3AED)
+                    )
+                )
+            }
+        }
+
+        // Focus Intensity
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF0e0e18),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Focus Intensity",
+                    fontSize = 14.sp,
+                    fontFamily = DmSansFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                Text(
+                    "How strongly surrounding lines fade out",
+                    fontSize = 12.sp,
+                    fontFamily = DmSansFamily,
+                    color = Color.White.copy(alpha = 0.45f),
+                    lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(8.dp))
+                Slider(
+                    value = visualPrefs.focusIntensity,
+                    onValueChange = { newVal ->
+                        visualPrefs = visualPrefs.copy(focusIntensity = newVal)
+                        scope.launch { context.saveVisualPrefs(visualPrefs) }
+                    },
+                    valueRange = 0f..1f,
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFF7C3AED),
+                        activeTrackColor = Color(0xFF7C3AED)
+                    )
+                )
+            }
+        }
+
+        // Lyric Font
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF0e0e18),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "Lyric Font",
+                    fontSize = 14.sp,
+                    fontFamily = DmSansFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    data class FontOption(val font: LyricFont, val label: String)
+                    val options = listOf(
+                        FontOption(LyricFont.DM_SANS, "Round"),
+                        FontOption(LyricFont.SPACE_GROTESK, "Sharp"),
+                        FontOption(LyricFont.PLAYFAIR_DISPLAY, "Serif")
+                    )
+                    options.forEach { option ->
+                        val selected = visualPrefs.lyricFont == option.font
+                        FilterChip(
+                            selected = selected,
+                            onClick = {
+                                visualPrefs = visualPrefs.copy(lyricFont = option.font)
+                                scope.launch { context.saveVisualPrefs(visualPrefs) }
+                            },
+                            label = {
+                                Text(
+                                    option.label,
+                                    fontSize = 13.sp,
+                                    fontFamily = DmSansFamily,
+                                    color = if (selected) Color.White else Color.White.copy(alpha = 0.6f)
+                                )
+                            },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFF7C3AED),
+                                containerColor = Color(0xFF1a1a2e)
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                borderColor = Color.White.copy(alpha = 0.1f),
+                                selectedBorderColor = Color.Transparent,
+                                enabled = true,
+                                selected = selected
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // Show Clock toggle
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF0e0e18),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Show Clock",
+                    fontSize = 14.sp,
+                    fontFamily = DmSansFamily,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+                Switch(
+                    checked = visualPrefs.showClock,
+                    onCheckedChange = { show ->
+                        visualPrefs = visualPrefs.copy(showClock = show)
+                        scope.launch { context.saveVisualPrefs(visualPrefs) }
+                    },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF7C3AED)
+                    )
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
     }
 }

@@ -1,9 +1,13 @@
 package com.verselock.service
 
+import android.app.Notification
 import android.content.ComponentName
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.media.MediaMetadata
 import android.media.session.MediaController
+import android.media.session.MediaSession
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.service.notification.NotificationListenerService
@@ -28,15 +32,31 @@ class MediaListenerService : NotificationListenerService() {
                 ?: metadata.getString(MediaMetadata.METADATA_KEY_ART_URI)
 
             if (artUriStr == null) {
-                val bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
+                // Try embedded bitmap from metadata (may be null due to IPC Binder size limits)
+                var bitmap = metadata.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART)
                     ?: metadata.getBitmap(MediaMetadata.METADATA_KEY_ART)
+
+                // Fallback: extract album art from the media app's notification large icon.
+                // Apps like Spotify embed art as a bitmap that gets stripped during IPC,
+                // but the notification's large icon is always available in-process.
+                if (bitmap == null) {
+                    bitmap = extractNotificationArt()
+                }
+
                 if (bitmap != null) {
                     try {
-                        val file = java.io.File(cacheDir, "current_album_art.png")
+                        val uniqueFileName = "album_art_${System.currentTimeMillis()}.png"
+                        val file = java.io.File(cacheDir, uniqueFileName)
                         java.io.FileOutputStream(file).use { out ->
-                            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
                         }
                         artUriStr = android.net.Uri.fromFile(file).toString()
+                        
+                        cacheDir.listFiles()?.forEach { cachedFile ->
+                            if (cachedFile.name.startsWith("album_art_") && cachedFile.name != uniqueFileName) {
+                                cachedFile.delete()
+                            }
+                        }
                     } catch(e: Exception) {
                         e.printStackTrace()
                     }
@@ -68,6 +88,45 @@ class MediaListenerService : NotificationListenerService() {
                 else -> {}
             }
         }
+    }
+
+    /**
+     * Extracts album art from the active media notification's large icon.
+     * This is the reliable fallback for apps like Spotify where the MediaMetadata
+     * bitmap is silently stripped during Binder IPC due to transaction size limits.
+     */
+    private fun extractNotificationArt(): Bitmap? {
+        try {
+            val notifications = activeNotifications ?: return null
+            for (sbn in notifications) {
+                val notification = sbn.notification ?: continue
+                val extras = notification.extras ?: continue
+
+                // Only consider notifications that belong to a media session
+                @Suppress("DEPRECATION")
+                val token = extras.getParcelable<MediaSession.Token>(
+                    Notification.EXTRA_MEDIA_SESSION
+                )
+                if (token == null) continue
+
+                // Try the extras bitmap first (works on most devices)
+                @Suppress("DEPRECATION")
+                val extrasBitmap = extras.getParcelable<Bitmap>(
+                    Notification.EXTRA_LARGE_ICON
+                )
+                if (extrasBitmap != null) return extrasBitmap
+
+                // Fallback: load from the Icon object
+                val icon = notification.getLargeIcon() ?: continue
+                val drawable = icon.loadDrawable(this@MediaListenerService)
+                if (drawable is BitmapDrawable) {
+                    return drawable.bitmap
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
     }
 
     override fun onListenerConnected() {
