@@ -1,12 +1,12 @@
 <resources>
-    <style name="Theme.verseLock" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.Rockscreen" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@color/black</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
-    <style name="Theme.verseLock.LockScreen" parent="Theme.verseLock">
+    <style name="Theme.Rockscreen.LockScreen" parent="Theme.Rockscreen">
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode">always</item>
     </style>

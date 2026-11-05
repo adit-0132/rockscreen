@@ -1,3 +1,51 @@
 <resources>
-    <string name="app_name">verseLock</string>
+    <string name="app_name">Rockscreen</string>
+    <string name="app_tagline">Lyrics on your lock screen</string>
+    <string name="listener_label">Rockscreen media listener</string>
+
+    <!-- Lock screen -->
+    <string name="lyrics_loading">Loading lyrics…</string>
+    <string name="lyrics_not_found">No lyrics found</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_next">Next</string>
+    <string name="album_art">Album art</string>
+
+    <!-- Full-screen notification that puts the lyrics screen over the keyguard -->
+    <string name="channel_lock_screen">Lyrics on lock screen</string>
+    <string name="channel_lock_screen_desc">Shows the lyrics screen over the lock screen while music plays</string>
+    <string name="notif_lyrics_ready">Lyrics are on your lock screen</string>
+
+    <!-- Settings -->
+    <string name="notif_access_title">Notification access required</string>
+    <string name="notif_access_body">Rockscreen needs notification access to read what\'s playing. It only reads the media session (title, artist, artwork, position), never your other notifications.</string>
+    <string name="notif_access_restricted_hint">If the switch is greyed out: App info → ⋮ → Allow restricted settings, then try again.</string>
+    <string name="open_settings">Open settings</string>
+    <string name="allow">Allow</string>
+    <string name="status_allowed">Allowed</string>
+
+    <string name="lock_toggle_title">Lock Screen Lyrics</string>
+    <string name="lock_toggle_body">Show lyrics over the lock screen while music plays, and keep the screen on while they\'re visible</string>
+
+    <string name="lock_access_section">Lock screen access</string>
+    <string name="perm_notifications_title">Notifications</string>
+    <string name="perm_notifications_body">Needed to open the lyrics over the lock screen when you wake your phone.</string>
+    <string name="perm_fsi_title">Full-screen notifications</string>
+    <string name="perm_fsi_body">Android 14 and later need this to show lyrics over the lock screen.</string>
+    <string name="perm_overlay_title">Display over other apps (optional)</string>
+    <string name="perm_overlay_body">Fallback for phones that block full-screen notifications.</string>
+
+    <string name="appearance">Appearance</string>
+    <string name="bg_intensity_title">Background Intensity</string>
+    <string name="bg_intensity_body">How strongly album colors bleed into the background</string>
+    <string name="lyric_size_title">Lyric Size</string>
+    <string name="lyric_size_body">Size of the current lyric line</string>
+    <string name="focus_title">Focus Intensity</string>
+    <string name="focus_body">How strongly surrounding lines fade out</string>
+    <string name="font_title">Lyric Font</string>
+    <string name="font_round">Round</string>
+    <string name="font_sharp">Sharp</string>
+    <string name="font_serif">Serif</string>
+    <string name="show_clock">Show Clock</string>
 </resources>

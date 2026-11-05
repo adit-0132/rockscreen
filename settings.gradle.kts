@@ -23,5 +23,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "verseLock"
+rootProject.name = "Rockscreen"
 include(":app")

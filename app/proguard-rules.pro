@@ -1,20 +1,14 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# R8 rules for the release build.
 
-# Keep kotlinx.serialization classes
+# kotlinx.serialization ships its own consumer rules; keep the generated serializer of our LRCLIB response DTO.
 -keepattributes *Annotation*, InnerClasses
--dontnote kotlinx.serialization.AnnotationsKt
-
--keepclassmembers class kotlinx.serialization.json.** {
+-keep,includedescriptorclasses class io.github.adit0132.rockscreen.data.network.**$$serializer { *; }
+-keepclassmembers class io.github.adit0132.rockscreen.data.network.** {
     *** Companion;
 }
--keepclasseswithmembers class kotlinx.serialization.json.** {
+-keepclasseswithmembers class io.github.adit0132.rockscreen.data.network.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
-# Keep LrcLibResponse for serialization
--keep class com.lyricslock.data.network.LrcLibResponse { *; }
+# Ktor references an optional SLF4J binder that doesn't exist on Android.
+-dontwarn org.slf4j.impl.StaticLoggerBinder

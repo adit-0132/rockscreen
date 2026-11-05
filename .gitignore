@@ -3,11 +3,16 @@
 /local.properties
 /.idea
 .DS_Store
-/build
+build/
 /captures
 .externalNativeBuild
 .cxx
+.kotlin/
 local.properties
+# Release signing (never commit)
+keystore.properties
+*.jks
+*.keystore
 lyrics-lockscreen-build-guide.md
 PROJECT_REPORT.md
 TESTING_GUIDE.md

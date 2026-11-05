@@ -1,0 +1,25 @@
+Rockscreen turns your lock screen into a lyrics screen. Play a song, wake your phone, and the words are already there, scrolling in time with the music.
+
+• Works with music apps that show playback controls in your notifications, such as Spotify
+• Line-by-line synced lyrics from LRCLIB, the open, community-run lyrics database
+• Album-art colours, play/pause/skip controls, and a choice of font, size and focus effect
+• Keeps the screen on while lyrics play over the lock screen; press power to turn it off
+• Closes as soon as you unlock
+
+Private by design
+• No account, no ads, no analytics, no trackers
+• Only the song title and artist leave your phone, sent to lrclib.net to look up lyrics
+• Lyrics are cached on your phone for 30 days
+
+Permissions
+• Notification access: to see what is playing (title, artist, album, position)
+• Notifications and full-screen notifications: to open the lyrics over the lock screen
+• Display over other apps (optional): a fallback for phones that block full-screen notifications
+
+Good to know
+• You need a lock screen (swipe, PIN, pattern or fingerprint). With "None", Rockscreen has nowhere to appear
+• If your phone unlocks the moment you wake it (for example a fingerprint sensor in the power button), wake it another way to see the lyrics, or leave it on a desk
+• Lyrics exist only for songs in LRCLIB; remixes and very new releases are often missing
+• Known issue: if a lookup fails (offline, LRCLIB down), that song shows no lyrics for 30 days
+
+Rockscreen is free software under the GPL-3.0. It is not affiliated with Spotify or LRCLIB.

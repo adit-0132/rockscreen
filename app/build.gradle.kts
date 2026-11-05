@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,17 +8,48 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Release signing is read from keystore.properties (git-ignored). Without it, release builds are unsigned.
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+
 android {
-    namespace = "com.verselock"
-    compileSdk = 35
+    namespace = "io.github.adit0132.rockscreen"
+    compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.verselock"
+        applicationId = "io.github.adit0132.rockscreen"
         minSdk = 27
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
-        buildConfigField("boolean", "DEBUG", "true")
+        versionName = "1.0.0"
+    }
+
+    signingConfigs {
+        if (keystoreProps.isNotEmpty()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
+
+    // F-Droid / reproducible builds: don't embed the Google-encrypted dependency metadata block.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     buildFeatures {
@@ -52,8 +85,8 @@ dependencies {
 
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-service:2.8.7")
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")
@@ -83,9 +116,6 @@ dependencies {
 
     // Palette for album art color extraction
     implementation("androidx.palette:palette-ktx:1.0.0")
-
-    // Google Fonts for Compose
-    implementation("androidx.compose.ui:ui-text-google-fonts")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
